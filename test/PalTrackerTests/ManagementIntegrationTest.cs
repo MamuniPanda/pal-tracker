@@ -23,7 +23,6 @@ namespace PalTrackerTests
         {
             var response = _testClient.GetAsync("/health").Result;
             var responseBody = JObject.Parse(response.Content.ReadAsStringAsync().Result);
-
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal("UP", responseBody["status"]);
             Assert.Equal("UP", responseBody["diskSpace"]["status"]);

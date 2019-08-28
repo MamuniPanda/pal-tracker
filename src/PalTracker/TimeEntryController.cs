@@ -2,64 +2,65 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace PalTracker
 {
-     [Route("/time-entries")]
-    public class TimeEntryController:ControllerBase
+    [Route("/time-entries")]
+    public class TimeEntryController : ControllerBase
     {
-      
         private readonly ITimeEntryRepository _repository;
+        private readonly IOperationCounter<TimeEntry> _operationCounter;
 
-        public TimeEntryController(ITimeEntryRepository repository)
+        public TimeEntryController(ITimeEntryRepository repository, IOperationCounter<TimeEntry> operationCounter)
         {
             _repository = repository;
+            _operationCounter = operationCounter;
         }
 
         [HttpPost]
-        public IActionResult Create([FromBody] TimeEntry timeentry)
+        public IActionResult Create([FromBody] TimeEntry timeEntry)
         {
-            
-         var createdTimeEntry = _repository.Create(timeentry);
-         
-           return CreatedAtRoute("GetTimeEntry", new {id = createdTimeEntry.Id}, createdTimeEntry);
+            _operationCounter.Increment(TrackedOperation.Create);
+
+            var createdTimeEntry = _repository.Create(timeEntry);
+
+            return CreatedAtRoute("GetTimeEntry", new {id = createdTimeEntry.Id}, createdTimeEntry);
         }
-        
-         [HttpGet("{id}", Name = "GetTimeEntry")]
+
+        [HttpGet("{id}", Name = "GetTimeEntry")]
         public IActionResult Read(long id)
         {
-         return _repository.Contains(id) ? (IActionResult) Ok(_repository.Find(id)) : NotFound();
-        
+            _operationCounter.Increment(TrackedOperation.Read);
+
+            return _repository.Contains(id) ? (IActionResult) Ok(_repository.Find(id)) : NotFound();
         }
-        
-         [HttpGet]
+
+        [HttpGet]
         public IActionResult List()
         {
-         return Ok(_repository.List());
+            _operationCounter.Increment(TrackedOperation.List);
+
+            return Ok(_repository.List());
         }
 
         [HttpPut("{id}")]
-        public IActionResult Update(long id, [FromBody]TimeEntry timeEntry)
+        public IActionResult Update(long id, [FromBody] TimeEntry timeEntry)
         {
-        //     if(_repository.Contains(id)==true){
-        //         _repository.Update(id,timeEntry);
-        //     }
-            
-        //   var updatedTimeEntry = _repository.Find(id);
-        //  return _repository.Contains(id)?(IActionResult) Ok(_repository.Find(id)) : NotFound();
-        return _repository.Contains(id) ? (IActionResult) Ok(_repository.Update(id, timeEntry)) : NotFound();
-        } 
+            _operationCounter.Increment(TrackedOperation.Update);
+
+            return _repository.Contains(id) ? (IActionResult) Ok(_repository.Update(id, timeEntry)) : NotFound();
+        }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(long id )
+        public IActionResult Delete(long id)
         {
-             //var deleteTimeEntry = _repository.Find(id);
-          if(_repository.Contains(id)){
-                _repository.Delete(id);
-                return NoContent();
+            _operationCounter.Increment(TrackedOperation.Delete);
+
+            if (!_repository.Contains(id))
+            {
+                return NotFound();
             }
 
-          else{
-              return NotFound();
-          }
+            _repository.Delete(id);
+
+            return NoContent();
         }
-      
     }
 }
